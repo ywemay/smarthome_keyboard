@@ -12,64 +12,65 @@ const byte ROW3 = 6 ;
 const byte COL0 = 5;
 const byte COL1 = 4;
 const byte COL2 = 3                                                                                                                                                              ;
-//const byte COL3 = 11;
 const byte BEEP = 2;
+
+// The pin that triggers interrupt in the hooked device
+const byte signalPin = 10;
 
 #define KEYBOARD_ID 2
 
-// creates kpd as MultitapKeypad object
-// for matrix 4 x 3 keypad
 MultitapKeypad kpd( ROW0, ROW1, ROW2, ROW3, COL0, COL1, COL2 );
-// for matrix 4 x 4 keypad
-//MultitapKeypad kpd( ROW0, ROW1, ROW2, ROW3, COL0, COL1, COL2, COL3 );
-// creates key as Key object
 Key key;
 
 char ch[3];
 
 void setup() {
+  pinMode(signalPin, OUTPUT);
+  digitalWrite(signalPin, HIGH);
+  
   tone( BEEP, 4000, 50 );
-  Wire.begin(KEYBOARD_ID);                // join i2c bus with given address
+  
+  Wire.begin(KEYBOARD_ID);  // join i2c bus with given address
   Wire.onRequest(requestEvent); // register event
   strcpy(ch, "EE");
 }
 
 void loop() {
-  key = kpd.getKey();
-
-  char ky[3] = {'K', 'E' , '\0'};
+  
+  key = kpd.getKey(); 
+  strcpy(ch, "KE");
+  
   if ( key.character > 0 )
-    ky[1] = char(key.character);
-
+    ch[1] = char(key.character);
   switch ( key.state ) {
   case KEY_DOWN:
-  case MULTI_TAP:
     tone( BEEP, 5000, 20 );
-    if ( key.state == MULTI_TAP ) {
-      if ( key.tapCounter < 2 )
-        ky[0] = 'M';
-      else {
-        kpd.resetTapCounter();
-      }
-    }
+    informMaster();
     break;
   case LONG_TAP:
     tone( BEEP, 5000, 20 );
-    ky[0] = 'L';
+    ch[0] = 'L';
+    informMaster();
     break;
   case MULTI_KEY_DOWN:
+    // Do nothing but beep
     tone( BEEP, 4000, 100 );
     break;
   }
-
-  ch[0] = ky[0];
-  ch[1] = ky[1];
-  ch[2] = ky[2];
 }
 
+/**
+ * Pulls LOW masters interrupt for tiny period of time
+ */
+void informMaster(){
+  digitalWrite(signalPin, LOW);
+  delay(5);
+  digitalWrite(signalPin, HIGH);
+}
+
+/**
+ * On interrupt from I2C wire - answer with key code
+ */
 void requestEvent() {
   Wire.write(ch); // respond with message
-  // as expected by master
-  // No key pressed:
-  strcpy(ch, "NNN");
 }
