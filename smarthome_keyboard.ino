@@ -44,8 +44,10 @@ void loop() {
     ch[1] = char(key.character);
   switch ( key.state ) {
   case KEY_DOWN:
+  case MULTI_TAP:
     tone( BEEP, 5000, 20 );
     informMaster();
+    kpd.resetTapCounter();
     break;
   case LONG_TAP:
     tone( BEEP, 5000, 20 );
